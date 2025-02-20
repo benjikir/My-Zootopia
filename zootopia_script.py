@@ -1,26 +1,26 @@
 import json
 
-# Step 1: Load the JSON data
+# Load data from the 'animals_data.json' file
 with open('animals_data.json', 'r') as file:
-    data = json.load(file)
+    animals = json.load(file)
 
-# Step 2: Generate the animals' data string
-output = ''
-for animal in data:
-    output += f"Name: {animal['name']}\n"
-    output += f"Diet: {animal['characteristics'].get('diet', 'N/A')}\n"
-    output += f"Location: {', '.join(animal['locations'])}\n"
-    output += f"Type: {animal['characteristics'].get('type', 'N/A')}\n\n"
+# Create the HTML list of animals in the desired format
+html_list = "\n".join(f'''
+<li class="cards__item">
+  <div class="card__title">{animal.get("name", "Unknown Name")}</div>
+  <p class="card__text">
+      <strong>Diet:</strong> {animal.get("diet", "Unknown Diet")}<br/>
+      <strong>Location:</strong> {animal.get("location", "Unknown Location")}<br/>
+      <strong>Type:</strong> {animal.get("type", "Unknown Type")}<br/>
+  </p>
+</li>
+''' for animal in animals)
 
-# Step 3: Read the template file
-with open('animals_template.html', 'r') as file:
-    template_content = file.read()
+# Wrap the list in a <ul> element
+html_output = f"<ul class='cards'>{html_list}</ul>"
 
-# Replace the placeholder with the generated animals' data
-new_content = template_content.replace('__REPLACE_ANIMALS_INFO__', output)
-
-# Step 4: Write the new content to a new file
+# Write the HTML content to an 'animals.html' file
 with open('animals.html', 'w') as file:
-    file.write(new_content)
+    file.write(html_output)
 
-print("HTML file generated successfully: animals.html")
+print("HTML file 'animals.html' has been created successfully.")
