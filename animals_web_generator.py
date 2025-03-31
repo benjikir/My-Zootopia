@@ -1,4 +1,5 @@
 import json
+import os
 
 # Function to get all skin types available in the animal_data.json
 def get_skin_types(data):
@@ -25,7 +26,7 @@ def serialize_animal(animal_obj):
     Serializes an animal object into an HTML list item.
 
     Args:
-        animal_obj (dict): A dictionary containing animal data (name, diet, locations, type).
+        animal_obj (dict): A dictionary containing animal data (name, diet, locations, type, skin_type).
 
     Returns:
         str: An HTML string representing the animal as a list item.
@@ -36,8 +37,9 @@ def serialize_animal(animal_obj):
     output += f'    <strong>Diet:</strong> {animal_obj["diet"]}<br/>\n'
     output += f'    <strong>Location:</strong> {", ".join(animal_obj["locations"])}<br/>\n'
     output += f'    <strong>Type:</strong> {animal_obj["type"]}<br/>\n'
-    if 'skin_type' in animal_obj:
-        output += f'    <strong>Skin Type:</strong> {animal_obj["skin_type"]}<br/>\n'  # Use skin_type if it exists
+    # Check if 'skin_type' key exists before accessing it
+    if 'skin_type' in animal_obj and animal_obj['skin_type']:
+        output += f'    <strong>Skin Type:</strong> {animal_obj["skin_type"]}<br/>\n'
     output += '  </p>\n'
     output += '</li>\n'
     return output
@@ -66,21 +68,29 @@ def generate_html(data, template_file="animals_template.html", output_file="anim
         diet = characteristics.get('diet')
         locations = animal.get('locations', [])
         animal_type = characteristics.get('type')
-        skin_type = characteristics.get('skin_type')
+        skin_type = characteristics.get('skin_type') # Get skin_type, might be None
 
+        # Ensure essential data is present
         if all([name, diet, locations, animal_type]) and len(locations) > 0:
             animal_obj = {
                 "name": name,
                 "diet": diet,
                 "locations": locations,
                 "type": animal_type,
-
+                # Include skin_type in the object passed to serialize_animal
+                # even if it's None, serialize_animal will handle it.
+                "skin_type": skin_type
             }
-            if skin_type:
-                animal_obj["skin_type"] = skin_type #Correct assignment here!
             animals_html += serialize_animal(animal_obj)
         else:
-            print(f"Skipping animal {name} due to missing data.")
+            # Provide more specific feedback if possible
+            missing_fields = []
+            if not name: missing_fields.append("name")
+            if not diet: missing_fields.append("diet")
+            if not locations: missing_fields.append("locations")
+            if not animal_type: missing_fields.append("type")
+            print(f"Skipping animal '{name or 'Unknown'}' due to missing data: {', '.join(missing_fields)}")
+
 
     # Replace the placeholder in the template with the generated HTML
     output_html = template.replace('__REPLACE_ANIMALS_INFO__', f'<ul class="cards">\n{animals_html}\n</ul>')
@@ -93,18 +103,43 @@ def generate_html(data, template_file="animals_template.html", output_file="anim
         print(f"Error writing to file '{output_file}': {e}")
 
 
-# Main execution block
-if __name__ == "__main__":
-    try:
-        with open('animals_data.json', 'r') as file:
-            animals_data = json.load(file)
-    except FileNotFoundError:
-        print("Error: 'animals_data.json' not found.")
-    except json.JSONDecodeError:
-        print("Error: Invalid JSON format in 'animals_data.json'.")
-    else:
-        # Example usage of the functions
-        skin_types = get_skin_types(animals_data)
-        print("Available skin types:", skin_types)  # Display available skin types
+def main():
+    """
+    Main function to orchestrate the loading of data and generation of HTML.
+    """
+    print("Current working directory:", os.getcwd())
 
+    # Try to list files in the current directory
+    try:
+        print("Files in current directory:", os.listdir('.'))
+    except Exception as e:
+        print("Error listing files:", e)
+
+    # Define the expected JSON filename
+    json_filename = 'animals_data.json'
+
+    try:
+        # Load data from JSON file
+        with open(json_filename, 'r') as file:
+            animals_data = json.load(file)
+            print(f"Successfully loaded {json_filename}")
+
+        # Get and print available skin types (optional analysis)
+        skin_types = get_skin_types(animals_data)
+        print("Available skin types:", skin_types)
+
+        # Generate the HTML file from the loaded data
         generate_html(animals_data)
+
+    except FileNotFoundError:
+        print(f"Error: '{json_filename}' not found in {os.getcwd()}. Make sure the file exists.")
+    except json.JSONDecodeError:
+        print(f"Error: Invalid JSON format in '{json_filename}'. Check the file content.")
+    except Exception as e:
+        # Catch any other unexpected errors during processing
+        print(f"An unexpected error occurred: {e}")
+
+
+# Main execution entry point
+if __name__ == "__main__":
+    main() # Call the main function
